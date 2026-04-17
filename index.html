@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Overdub DAW</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Setup Screen -->
+    <div id="setup-screen" class="screen active">
+        <div class="logo">
+            <div class="logo-title-container">
+                <h1>Collaborative<span>Recording</span></h1>
+                <a href="instructions.html" target="_blank" class="info-icon" title="View Instructions">i</a>
+            </div>
+            <p>Collaborative multi-track video recording</p>
+        </div>
+        
+        <div class="setup-actions">
+            <div class="card">
+                <h2>Control Center</h2>
+                <p>Host the recording session and mix videos.</p>
+                <button id="btn-create-host" class="primary-btn">Create Control Center</button>
+            </div>
+            <div class="card">
+                <h2>Camera Mode</h2>
+                <p>Connect your phone as the remote camera.</p>
+                <input type="text" id="input-room-id" placeholder="Enter Room ID">
+                <button id="btn-join-camera" class="secondary-btn">Join as Camera</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Screen -->
+    <div id="camera-screen" class="screen">
+        <div class="camera-header">
+            <h2>Camera Mode</h2>
+            <div id="camera-room-display" class="badge">Room: <span>---</span></div>
+            <div id="camera-status" class="status dot-red">Not Connected</div>
+        </div>
+        <div id="camera-ready-container" class="hidden" style="margin-bottom: 1rem; text-align: center;">
+            <button id="btn-camera-ready" class="primary-btn" style="width: 100%; padding: 1.5rem; font-size: 1.5rem; background-color: var(--success);">I'm Ready!</button>
+        </div>
+        <div class="camera-preview">
+            <video id="local-camera-video" autoplay muted playsinline></video>
+            <audio id="remote-audio-playback" autoplay></audio>
+        </div>
+        <p class="instruction">Point camera at the subject. The host entirely controls recording.</p>
+    </div>
+
+    <!-- Host Screen -->
+    <div id="host-screen" class="screen">
+        <div class="host-header">
+            <div class="brand">Collaborative<span>Recording</span></div>
+            
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <label class="cb-label" style="background-color: var(--bg-card); padding: 0.5rem 1rem; border: 1px solid var(--border); font-size: 0.9rem;">
+                    <input type="checkbox" id="remote-mode-cb"> Remote Mode
+                </label>
+                <div id="host-room-display" class="badge">Room ID: <span>---</span></div>
+                <button id="btn-new-session" class="secondary-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">🔌 New Session</button>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
+                <div id="host-status" class="status dot-yellow">Waiting for Camera...</div>
+                <div id="host-ready-status" class="status dot-red hidden" style="font-weight: bold;">Performer Not Ready</div>
+            </div>
+        </div>
+
+        <div class="grid-container">
+            <!-- 4 track boxes -->
+            <div class="track-box empty" id="box-1" data-id="1">
+                <button class="add-btn">
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+                <div class="box-content">
+                    <video class="track-video" muted playsinline></video>
+                    <div class="top-bar">
+                        <label class="cb-label" title="Play while recording other tracks">
+                            <input type="checkbox" class="monitor-cb" checked> Mon
+                        </label>
+                        <label class="cb-label" title="Include in final export">
+                            <input type="checkbox" class="export-cb" checked> Exp
+                        </label>
+                        <button class="icon-btn del-btn" title="Delete Track">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                    <div class="center-controls">
+                        <button class="record-btn round-btn record">
+                            <div class="inner-circle"></div>
+                        </button>
+                        <button class="play-btn round-btn play hidden">
+                            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        </button>
+                    </div>
+                    <div class="countdown-overlay">
+                        <span class="countdown-text">4</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Box 2 -->
+            <div class="track-box empty" id="box-2" data-id="2">
+                <button class="add-btn">
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+                <div class="box-content">
+                    <video class="track-video" muted playsinline></video>
+                    <div class="top-bar">
+                        <label class="cb-label"><input type="checkbox" class="monitor-cb" checked> Mon</label>
+                        <label class="cb-label"><input type="checkbox" class="export-cb" checked> Exp</label>
+                        <button class="icon-btn del-btn" title="Delete">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                    <div class="center-controls">
+                        <button class="record-btn round-btn record"><div class="inner-circle"></div></button>
+                        <button class="play-btn round-btn play hidden">
+                            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        </button>
+                    </div>
+                    <div class="countdown-overlay"><span class="countdown-text">4</span></div>
+                </div>
+            </div>
+
+            <!-- Box 3 -->
+            <div class="track-box empty" id="box-3" data-id="3">
+                <button class="add-btn">
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+                <div class="box-content">
+                    <video class="track-video" muted playsinline></video>
+                    <div class="top-bar">
+                        <label class="cb-label"><input type="checkbox" class="monitor-cb" checked> Mon</label>
+                        <label class="cb-label"><input type="checkbox" class="export-cb" checked> Exp</label>
+                        <button class="icon-btn del-btn" title="Delete">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                    <div class="center-controls">
+                        <button class="record-btn round-btn record"><div class="inner-circle"></div></button>
+                        <button class="play-btn round-btn play hidden">
+                            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        </button>
+                    </div>
+                    <div class="countdown-overlay"><span class="countdown-text">4</span></div>
+                </div>
+            </div>
+
+            <!-- Box 4 -->
+            <div class="track-box empty" id="box-4" data-id="4">
+                <button class="add-btn">
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+                <div class="box-content">
+                    <video class="track-video" muted playsinline></video>
+                    <div class="top-bar">
+                        <label class="cb-label"><input type="checkbox" class="monitor-cb" checked> Mon</label>
+                        <label class="cb-label"><input type="checkbox" class="export-cb" checked> Exp</label>
+                        <button class="icon-btn del-btn" title="Delete">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                    <div class="center-controls">
+                        <button class="record-btn round-btn record"><div class="inner-circle"></div></button>
+                        <button class="play-btn round-btn play hidden">
+                            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        </button>
+                    </div>
+                    <div class="countdown-overlay"><span class="countdown-text">4</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="host-footer">
+            <div class="export-controls">
+                <input type="text" id="export-name" placeholder="Export Name (e.g. MySong)">
+                <button id="btn-export-mix" class="primary-btn">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Export Mix (.mp4)
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hidden Canvas for Mixing -->
+    <canvas id="mix-canvas" width="1280" height="720" style="display:none;"></canvas>
+
+    <script src="app.js"></script>
+</body>
+</html>
